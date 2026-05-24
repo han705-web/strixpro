@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-light mb-2">StrixPro Dashboard</h1>
+    <p class="text-gray-400">AI驱动的自动化安全测试平台 — 就绪状态: <span class="text-green-400">Online</span></p>
+</div>
+
+<!-- Stats -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+    <div class="bg-gray-900 rounded-xl p-6 border border-gray-800 card-hover transition">
+        <div class="text-3xl font-bold text-cyan-400 mb-1">{{ stats.fingerprints }}</div>
+        <div class="text-gray-400 text-sm">浏览器指纹</div>
+    </div>
+    <div class="bg-gray-900 rounded-xl p-6 border border-gray-800 card-hover transition">
+        <div class="text-3xl font-bold text-blue-400 mb-1">{{ stats.waf_payloads }}</div>
+        <div class="text-gray-400 text-sm">WAF绕过模板</div>
+    </div>
+    <div class="bg-gray-900 rounded-xl p-6 border border-gray-800 card-hover transition">
+        <div class="text-3xl font-bold text-purple-400 mb-1">{{ stats.plugins }}</div>
+        <div class="text-gray-400 text-sm">可用插件</div>
+    </div>
+    <div class="bg-gray-900 rounded-xl p-6 border border-gray-800 card-hover transition">
+        <div class="text-3xl font-bold text-green-400 mb-1">REST</div>
+        <div class="text-gray-400 text-sm">API接口</div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <a href="/scan" class="bg-gradient-to-br from-cyan-900/40 to-blue-900/40 rounded-xl p-6 border border-cyan-900/50 card-hover transition block">
+        <h3 class="text-lg font-semibold mb-2">Quick Scan</h3>
+        <p class="text-gray-400 text-sm mb-4">扫描目标的安全头部、CORS、敏感信息泄露</p>
+        <span class="text-cyan-400 text-sm">开始扫描 &rarr;</span>
+    </a>
+    <a href="/waf" class="bg-gradient-to-br from-purple-900/40 to-pink-900/40 rounded-xl p-6 border border-purple-900/50 card-hover transition block">
+        <h3 class="text-lg font-semibold mb-2">WAF Bypass</h3>
+        <p class="text-gray-400 text-sm mb-4">生成编码混淆的绕过Payload，支持11种编码方式</p>
+        <span class="text-purple-400 text-sm">生成Payload &rarr;</span>
+    </a>
+    <a href="/js-analyzer" class="bg-gradient-to-br from-amber-900/40 to-red-900/40 rounded-xl p-6 border border-amber-900/50 card-hover transition block">
+        <h3 class="text-lg font-semibold mb-2">JS Analyzer</h3>
+        <p class="text-gray-400 text-sm mb-4">从JavaScript中提取API端点、硬编码凭证、隐藏路由</p>
+        <span class="text-amber-400 text-sm">分析JS &rarr;</span>
+    </a>
+</div>
+
+<div class="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+    <div class="px-6 py-4 border-b border-gray-800 flex justify-between items-center">
+        <h2 class="text-lg font-semibold">系统信息</h2>
+    </div>
+    <div class="p-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div><span class="text-gray-500">版本:</span> 1.0.0</div>
+            <div><span class="text-gray-500">引擎:</span> Python + FastAPI + curl_cffi</div>
+            <div><span class="text-gray-500">指纹数据库:</span> 5个浏览器 (Chrome/Firefox/Edge/Safari)</div>
+            <div><span class="text-gray-500">编码方法:</span> 11种 (URL/Base64/Unicode/Hex等)</div>
+            <div><span class="text-gray-500">攻击类型:</span> 7种 (XSS/SQLi/SSRF/SSTI/LFI/CMDI/OpenRedirect)</div>
+            <div><span class="text-gray-500">报告格式:</span> Markdown/HTML/JSON</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

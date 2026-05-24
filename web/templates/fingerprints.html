@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Fingerprints{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-light mb-6">Browser Fingerprint Engine</h1>
+
+<div class="grid grid-cols-1 gap-6 mb-6">
+    {% for fp in fingerprints %}
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-6 card-hover transition">
+        <div class="flex justify-between items-start mb-4">
+            <h3 class="text-lg font-semibold">{{ fp.name }}</h3>
+            <span class="text-xs bg-gray-800 px-3 py-1 rounded-full text-gray-400">{{ fp.id }}</span>
+        </div>
+        <div class="text-sm space-y-2 font-mono">
+            <div class="flex">
+                <span class="text-gray-500 w-32 shrink-0">User-Agent:</span>
+                <span class="text-gray-300 break-all">{{ fp.ua[:100] }}...</span>
+            </div>
+            <div class="flex">
+                <span class="text-gray-500 w-32 shrink-0">Accept-Language:</span>
+                <span class="text-gray-300">{{ fp.accept_language }}</span>
+            </div>
+            {% if fp.sec_ch_ua %}
+            <div class="flex">
+                <span class="text-gray-500 w-32 shrink-0">Sec-Ch-Ua:</span>
+                <span class="text-gray-300">{{ fp.sec_ch_ua[:80] }}</span>
+            </div>
+            {% endif %}
+            <div class="flex">
+                <span class="text-gray-500 w-32 shrink-0">JA3:</span>
+                <span class="text-gray-300 text-xs">{{ fp.tls.ja3[:80] }}...</span>
+            </div>
+        </div>
+        <button onclick="copyHeaders('{{ fp.id }}')" class="mt-4 text-sm text-cyan-400 hover:text-cyan-300">
+            Copy Headers
+        </button>
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+async function copyHeaders(id) {
+    const res = await fetch('/api/v1/fingerprints/generate?profile_id=' + id);
+    const data = await res.json();
+    const headers = data.headers || {};
+    const text = Object.entries(headers).map(([k,v]) => k + ': ' + v).join('\n');
+    navigator.clipboard.writeText(text);
+}
+</script>
+{% endblock %}

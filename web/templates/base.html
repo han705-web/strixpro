@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StrixPro - {% block title %}Dashboard{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .bg-strix { background: linear-gradient(135deg, #0f0c29, #302b63, #24243e); }
+        .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.3); }
+        .severity-critical { color: #ef4444; }
+        .severity-high { color: #f97316; }
+        .severity-medium { color: #eab308; }
+        .severity-low { color: #3b82f6; }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-100 min-h-screen">
+    <nav class="bg-strix border-b border-gray-800 px-6 py-3">
+        <div class="max-w-7xl mx-auto flex items-center justify-between">
+            <div class="flex items-center space-x-8">
+                <a href="/" class="text-xl font-bold tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">
+                    StrixPro
+                </a>
+                <div class="hidden md:flex space-x-6 text-sm">
+                    <a href="/" class="hover:text-cyan-400 transition">Dashboard</a>
+                    <a href="/scan" class="hover:text-cyan-400 transition">Scanner</a>
+                    <a href="/waf" class="hover:text-cyan-400 transition">WAF Bypass</a>
+                    <a href="/js-analyzer" class="hover:text-cyan-400 transition">JS Analyzer</a>
+                    <a href="/fingerprints" class="hover:text-cyan-400 transition">Fingerprints</a>
+                    <a href="/pricing" class="hover:text-cyan-400 transition">Pricing</a>
+                </div>
+            </div>
+            <div class="text-sm text-gray-400">
+                v1.0.0
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="border-t border-gray-800 py-6 text-center text-gray-600 text-sm">
+        StrixPro - AI驱动的自动化安全测试平台 | AGPL-3.0 License
+    </footer>
+</body>
+</html>

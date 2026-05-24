@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}Pricing{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-light mb-2">定价方案</h1>
+<p class="text-gray-400 mb-8">选择适合你的版本，开启自动化安全测试</p>
+
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <!-- Community -->
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-8 flex flex-col">
+        <h3 class="text-xl font-bold mb-2">社区版</h3>
+        <p class="text-4xl font-bold mb-1">¥0</p>
+        <p class="text-gray-500 text-sm mb-6">永久免费</p>
+        <ul class="space-y-3 mb-8 flex-1 text-sm">
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> 5种浏览器指纹</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> WAF绕过Payload生成</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> JS Bundle基础分析</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> Markdown报告</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> CLI工具</li>
+            <li class="flex items-start text-gray-600"><span class="text-gray-600 mr-2">&#10007;</span> AI增强引擎</li>
+            <li class="flex items-start text-gray-600"><span class="text-gray-600 mr-2">&#10007;</span> Web管理界面</li>
+        </ul>
+        <a href="https://github.com/strixpro/strixpro"
+           class="block text-center bg-gray-800 hover:bg-gray-700 py-3 rounded-lg font-medium transition w-full">
+            下载
+        </a>
+    </div>
+
+    <!-- Pro -->
+    <div class="bg-gradient-to-b from-cyan-900/30 to-blue-900/30 rounded-xl border border-cyan-800 p-8 flex flex-col relative">
+        <div class="absolute -top-3 right-6 bg-cyan-600 text-xs px-3 py-1 rounded-full font-medium">推荐</div>
+        <h3 class="text-xl font-bold mb-2">专业版</h3>
+        <p class="text-4xl font-bold mb-1">¥199</p>
+        <p class="text-gray-500 text-sm mb-6">/年</p>
+        <ul class="space-y-3 mb-8 flex-1 text-sm">
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> 社区版全部功能</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> AI增强漏洞分析引擎</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> 高级API安全扫描</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> Web管理面板</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> HTML/JSON报告</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> 所有编码方式</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> REST API访问</li>
+        </ul>
+        <button onclick="alert('激活请发送邮件至: team@strixpro.dev')"
+            class="block w-full text-center bg-cyan-600 hover:bg-cyan-500 py-3 rounded-lg font-medium transition">
+            立即购买
+        </button>
+    </div>
+
+    <!-- Enterprise -->
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-8 flex flex-col">
+        <h3 class="text-xl font-bold mb-2">企业版</h3>
+        <p class="text-4xl font-bold mb-1">¥1,999</p>
+        <p class="text-gray-500 text-sm mb-6">/年</p>
+        <ul class="space-y-3 mb-8 flex-1 text-sm">
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> 专业版全部功能</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> 团队协作 (50席)</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> SAML/SSO集成</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> 审计日志</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> 定制插件开发</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> 私有部署</li>
+            <li class="flex items-start"><span class="text-green-400 mr-2">&#10003;</span> 优先技术支持</li>
+        </ul>
+        <button onclick="alert('企业版咨询请发送邮件至: team@strixpro.dev')"
+            class="block w-full text-center bg-gray-700 hover:bg-gray-600 py-3 rounded-lg font-medium transition">
+            联系销售
+        </button>
+    </div>
+</div>
+
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 text-sm text-gray-400">
+    <h3 class="text-white font-semibold mb-2">支付方式</h3>
+    <p>支持支付宝、微信支付、银行转账。企业版可开具增值税专用发票。</p>
+    <p class="mt-1">团队版请联系: team@strixpro.dev</p>
+</div>
+{% endblock %}

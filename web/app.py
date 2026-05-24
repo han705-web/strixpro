@@ -1,6 +1,6 @@
 """
 StrixPro Web Service - Web服务
-提供RESTful API、用户管理、支付集成
+提供RESTful API、用户管理、支付集成、前端界面
 """
 import os
 import json
@@ -13,14 +13,22 @@ from datetime import datetime
 logger = logging.getLogger("strixpro.web")
 
 try:
-    from fastapi import FastAPI, HTTPException, Depends, Query, Body
+    from fastapi import FastAPI, HTTPException, Depends, Query, Body, Request
     from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.responses import HTMLResponse
+    from fastapi.templating import Jinja2Templates
+    from fastapi.staticfiles import StaticFiles
     from pydantic import BaseModel
     import uvicorn
 
     FASTAPI_AVAILABLE = True
+
+    # Setup templates
+    _templates_dir = Path(__file__).parent / "templates"
+    templates = Jinja2Templates(directory=str(_templates_dir))
 except ImportError:
     FASTAPI_AVAILABLE = False
+    templates = None
     logger.warning("FastAPI not available, web server disabled")
 
 
@@ -70,7 +78,47 @@ if FASTAPI_AVAILABLE:
     # In-memory task store
     tasks = {}
 
-    @app.get("/")
+    # ============ Page Routes ============
+
+    @app.get("/", response_class=HTMLResponse)
+    async def dashboard(request: Request):
+        from core.fingerprint import manager as fp_mgr
+        from core.waf_bypass import engine as waf_eng, AttackType, PAYLOAD_TEMPLATES
+        from core.plugin_system import PluginManager
+
+        stats = {
+            "fingerprints": len(fp_mgr.list_profiles()),
+            "waf_payloads": sum(len(t) for t in PAYLOAD_TEMPLATES.values()),
+            "plugins": len(PluginManager().discover()),
+        }
+        return templates.TemplateResponse("dashboard.html", {"request": request, "stats": stats})
+
+    @app.get("/scan", response_class=HTMLResponse)
+    async def scan_page(request: Request):
+        return templates.TemplateResponse("scan.html", {"request": request})
+
+    @app.get("/waf", response_class=HTMLResponse)
+    async def waf_page(request: Request):
+        return templates.TemplateResponse("waf.html", {"request": request})
+
+    @app.get("/js-analyzer", response_class=HTMLResponse)
+    async def js_analyzer_page(request: Request):
+        return templates.TemplateResponse("js_analyzer.html", {"request": request})
+
+    @app.get("/fingerprints", response_class=HTMLResponse)
+    async def fingerprints_page(request: Request):
+        from core.fingerprint import manager as fp_mgr
+        fps = [{"id": k, "name": v.name, "ua": v.ua, "accept_language": v.accept_language,
+                "sec_ch_ua": v.sec_ch_ua, "tls": v.tls} for k, v in fp_mgr._profiles.items()]
+        return templates.TemplateResponse("fingerprints.html", {"request": request, "fingerprints": fps})
+
+    @app.get("/pricing", response_class=HTMLResponse)
+    async def pricing_page(request: Request):
+        return templates.TemplateResponse("pricing.html", {"request": request})
+
+    # ============ API Routes ============
+
+    @app.get("/api")
     async def root():
         return {
             "name": "StrixPro API",

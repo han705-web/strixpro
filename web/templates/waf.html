@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}WAF Bypass{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-light mb-6">WAF Bypass Payload Generator</h1>
+
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-6">
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm text-gray-400 mb-1">Attack Type</label>
+            <select id="attackType" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 focus:outline-none">
+                <option value="xss">XSS - Cross Site Scripting</option>
+                <option value="sqli">SQL Injection</option>
+                <option value="ssrf">SSRF - Server Side Request Forgery</option>
+                <option value="cmdi">Command Injection</option>
+                <option value="ssti">SSTI - Server Side Template Injection</option>
+                <option value="lfi">LFI - Local File Inclusion</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm text-gray-400 mb-1">Count</label>
+            <input type="number" id="count" value="10" min="1" max="100"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 focus:outline-none">
+        </div>
+        <button onclick="generatePayloads()"
+            class="bg-purple-600 hover:bg-purple-500 px-6 py-2 rounded-lg font-medium transition">
+            Generate Payloads
+        </button>
+    </div>
+</div>
+
+<div id="result" class="hidden"></div>
+
+<script>
+async function generatePayloads() {
+    const type = document.getElementById('attackType').value;
+    const count = parseInt(document.getElementById('count').value);
+
+    const res = await fetch('/api/v1/waf/bypass', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({attack_type: type, count: count})
+    });
+    const data = await res.json();
+
+    let html = '<div class="bg-gray-900 rounded-xl border border-gray-800 p-6">' +
+        '<h3 class="text-lg font-semibold mb-3">Generated ' + data.count + ' Payloads</h3>' +
+        '<div class="space-y-2 max-h-96 overflow-y-auto">';
+
+    data.payloads.forEach(p => {
+        html += '<div class="bg-gray-950 rounded p-3 text-sm">' +
+            '<div class="text-gray-400 text-xs mb-1">[' + p.id + '] ' + p.attack_type + ' | ' + p.encoding + ' | ' + p.length + ' chars</div>' +
+            '<div class="text-gray-300 break-all">Original: <span class="text-gray-500">' + escapeHtml(p.original) + '</span></div>' +
+            '<div class="text-green-300 break-all font-mono text-xs mt-1">' + escapeHtml(p.encoded) + '</div>' +
+            '</div>';
+    });
+
+    html += '</div><button onclick="copyAll()" class="mt-4 text-sm text-cyan-400 hover:text-cyan-300">Copy All</button></div>';
+
+    document.getElementById('result').innerHTML = html;
+    document.getElementById('result').classList.remove('hidden');
+    window._payloads = data.payloads.map(p => p.encoded).join('\n');
+}
+
+function copyAll() {
+    if (window._payloads) {
+        navigator.clipboard.writeText(window._payloads);
+    }
+}
+
+function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}

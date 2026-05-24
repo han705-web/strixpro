@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}JS Analyzer{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-light mb-6">JavaScript Bundle Analyzer</h1>
+
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-6">
+    <div class="space-y-4">
+        <div>
+            <label class="block text-sm text-gray-400 mb-1">JavaScript Source</label>
+            <textarea id="jsContent" rows="10"
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white font-mono text-sm focus:border-cyan-500 focus:outline-none"
+                placeholder="Paste JavaScript code or URL to fetch...">var apiKey = "sk-1234567890abcdef";
+var internalUrl = "http://10.0.0.1/admin";
+var s3bucket = "my-app-bucket.s3.amazonaws.com";
+
+fetch("/api/v1/users", {method: "GET"});
+fetch("https://internal-api.company.com/v2/secret");
+
+var config = {
+    password: "admin123",
+    secret: "supersecrettoken"
+};</textarea>
+        </div>
+        <div class="flex gap-4">
+            <button onclick="analyzeJs()" class="bg-amber-600 hover:bg-amber-500 px-6 py-2 rounded-lg font-medium transition">
+                Analyze
+            </button>
+            <button onclick="fetchUrl()" class="bg-gray-700 hover:bg-gray-600 px-6 py-2 rounded-lg font-medium transition">
+                Fetch URL
+            </button>
+        </div>
+    </div>
+</div>
+
+<div id="result" class="hidden"></div>
+
+<script>
+async function analyzeJs() {
+    const content = document.getElementById('jsContent').value;
+    const res = await fetch('/api/v1/js/analyze', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({content: content, source: 'web'})
+    });
+    const data = await res.json();
+    displayResults(data);
+}
+
+async function fetchUrl() {
+    const content = document.getElementById('jsContent').value.trim();
+    if (!content.startsWith('http')) { alert('Please enter a URL starting with http:// or https://'); return; }
+    document.getElementById('jsContent').value = 'Fetching ' + content + '...';
+    const res = await fetch('/api/v1/js/analyze', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({content: content, source: content})
+    });
+    const data = await res.json();
+    displayResults(data);
+}
+
+function displayResults(data) {
+    const summary = data.summary || {};
+    const findings = data.findings || {};
+    const endpoints = data.api_endpoints || [];
+
+    let html = '<div class="bg-gray-900 rounded-xl border border-gray-800 p-6">' +
+        '<h3 class="text-lg font-semibold mb-3">Analysis Results</h3>' +
+        '<div class="grid grid-cols-3 gap-4 mb-6 text-sm">' +
+        '<div class="bg-gray-950 rounded p-3"><span class="text-gray-400">Total Findings</span><br><span class="text-2xl font-bold text-amber-400">' + summary.total_findings + '</span></div>' +
+        '<div class="bg-gray-950 rounded p-3"><span class="text-gray-400">Endpoints</span><br><span class="text-2xl font-bold text-cyan-400">' + endpoints.length + '</span></div>' +
+        '<div class="bg-gray-950 rounded p-3"><span class="text-gray-400">Categories</span><br><span class="text-2xl font-bold text-purple-400">' + (summary.categories_found || []).length + '</span></div>' +
+        '</div>';
+
+    if (endpoints.length > 0) {
+        html += '<h4 class="text-sm text-cyan-400 mb-2">API Endpoints</h4>' +
+            '<div class="bg-gray-950 rounded p-3 text-xs font-mono max-h-48 overflow-y-auto mb-4">';
+        endpoints.forEach(ep => { html += '<div class="text-green-300">' + escapeHtml(ep) + '</div>'; });
+        html += '</div>';
+    }
+
+    for (const [cat, matches] of Object.entries(findings)) {
+        if (matches.length > 0) {
+            html += '<h4 class="text-sm text-yellow-400 mb-2">' + cat + ' (' + matches.length + ')</h4>' +
+                '<div class="bg-gray-950 rounded p-3 text-xs font-mono max-h-48 overflow-y-auto mb-4">';
+            matches.forEach(m => {
+                html += '<div class="mb-2"><span class="text-red-300">' + escapeHtml(m.value) + '</span>';
+                if (m.context) html += '<br><span class="text-gray-600">' + escapeHtml(m.context) + '</span>';
+                html += '</div>';
+            });
+            html += '</div>';
+        }
+    }
+
+    html += '</div>';
+    document.getElementById('result').innerHTML = html;
+    document.getElementById('result').classList.remove('hidden');
+}
+
+function escapeHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}

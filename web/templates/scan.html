@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Scanner{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-light mb-6">Target Scanner</h1>
+
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-6">
+    <form action="/api/v1/scan" method="POST" id="scanForm" class="space-y-4">
+        <div>
+            <label class="block text-sm text-gray-400 mb-1">Target URL</label>
+            <input type="url" name="url" required
+                class="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 focus:outline-none"
+                placeholder="https://example.com">
+        </div>
+        <div class="flex flex-wrap gap-6 text-sm">
+            <label class="flex items-center"><input type="checkbox" name="check_headers" checked class="mr-2"> Security Headers</label>
+            <label class="flex items-center"><input type="checkbox" name="check_cors" checked class="mr-2"> CORS</label>
+            <label class="flex items-center"><input type="checkbox" name="js_analysis" checked class="mr-2"> JS Analysis</label>
+        </div>
+        <button type="submit"
+            class="bg-cyan-600 hover:bg-cyan-500 px-6 py-2 rounded-lg font-medium transition">
+            Start Scan
+        </button>
+    </form>
+</div>
+
+<div id="result" class="hidden"></div>
+
+<script>
+document.getElementById('scanForm').onsubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = { url: form.url.value, check_headers: form.check_headers.checked, check_cors: form.check_cors.checked, js_analysis: form.js_analysis.checked };
+
+    const res = await fetch('/api/v1/scan', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+    const task = await res.json();
+
+    document.getElementById('result').innerHTML = '<div class="bg-gray-900 rounded-xl border border-gray-800 p-6"><p class="text-cyan-400">Scan started: ' + task.task_id + '</p><p class="text-gray-400 text-sm mt-2">Polling for results...</p></div>';
+    document.getElementById('result').classList.remove('hidden');
+
+    const poll = setInterval(async () => {
+        const r = await fetch('/api/v1/scan/' + task.task_id);
+        const state = await r.json();
+        if (state.status === 'completed') {
+            clearInterval(poll);
+            const result = state.result || {};
+            const vulns = result.vulnerabilities || [];
+            const endpoints = result.api_endpoints || [];
+            const secrets = result.secrets || [];
+            document.getElementById('result').innerHTML = '<div class="bg-gray-900 rounded-xl border border-gray-800 p-6">' +
+                '<h3 class="text-lg font-semibold mb-3">Scan Complete</h3>' +
+                '<p>Total findings: <strong>' + result.summary.total_findings + '</strong></p>' +
+                (endpoints.length ? '<div class="mt-4"><h4 class="text-sm text-gray-400 mb-2">API Endpoints (' + endpoints.length + ')</h4><div class="bg-gray-950 rounded p-3 text-xs font-mono max-h-40 overflow-y-auto">' + endpoints.map(e => '<div>' + e + '</div>').join('') + '</div></div>' : '') +
+                (secrets.length ? '<div class="mt-4"><h4 class="text-sm text-yellow-400 mb-2">Sensitive Data (' + secrets.length + ')</h4><div class="bg-gray-950 rounded p-3 text-xs font-mono max-h-40 overflow-y-auto">' + secrets.map(s => '<div class="text-yellow-300">' + (s.value || '') + '</div>').join('') + '</div></div>' : '') +
+                '</div>';
+        } else if (state.status === 'failed') {
+            clearInterval(poll);
+            document.getElementById('result').innerHTML = '<div class="bg-red-900/50 rounded-xl border border-red-800 p-6"><p class="text-red-400">Scan failed: ' + (state.error || 'unknown') + '</p></div>';
+        }
+    }, 2000);
+};
+</script>
+{% endblock %}
