@@ -3,6 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="StrixPro - AI驱动的自动化Web安全测试平台。浏览器指纹模拟、WAF绕过、JS资产分析、API安全扫描，一站式安全测试解决方案。">
+    <meta name="keywords" content="安全测试,WAF绕过,浏览器指纹,JS分析,API扫描,渗透测试,网络安全">
+    <meta name="robots" content="index, follow">
+    <meta property="og:title" content="StrixPro - AI 驱动安全测试平台">
+    <meta property="og:description" content="浏览器指纹模拟 · WAF绕过 · JS资产分析 · API安全扫描">
+    <meta property="og:type" content="website">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2306b6d4'/%3E%3Ctext x='16' y='22' font-size='18' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold'%3ES%3C/text%3E%3C/svg%3E">
+    <link rel="alternate" type="application/rss+xml" title="StrixPro Blog RSS" href="/blog/rss.xml">
     <title>StrixPro - {% block title %}Dashboard{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -12,6 +20,8 @@
         .severity-high { color: #f97316; }
         .severity-medium { color: #eab308; }
         .severity-low { color: #3b82f6; }
+        .share-btn { transition: all 0.2s; }
+        .share-btn:hover { transform: scale(1.05); }
     </style>
 </head>
 <body class="bg-gray-950 text-gray-100 min-h-screen">
@@ -27,11 +37,21 @@
                     <a href="/waf" class="hover:text-cyan-400 transition">WAF Bypass</a>
                     <a href="/js-analyzer" class="hover:text-cyan-400 transition">JS Analyzer</a>
                     <a href="/fingerprints" class="hover:text-cyan-400 transition">Fingerprints</a>
-                    <a href="/pricing" class="hover:text-cyan-400 transition">Pricing</a>
+                    <a href="/reportcard" class="hover:text-cyan-400 transition">Report Card</a>
+                    <a href="/examples" class="hover:text-cyan-400 transition">示例</a>
+                    <a href="/blog" class="hover:text-cyan-400 transition">博客</a>
+                    <a href="/live-demo" class="hover:text-cyan-400 transition transition">Live Demo</a>
+                    <a href="/changelog" class="hover:text-cyan-400 transition">更新</a>
+                    <a href="/download" class="hover:text-cyan-400 transition">下载</a>
+                    <a href="/pricing" class="hover:text-cyan-400 transition">定价</a>
+                    <a href="/checkout" class="text-cyan-400 hover:text-cyan-300 transition font-semibold">立即购买</a>
                 </div>
             </div>
-            <div class="text-sm text-gray-400">
-                v1.0.0
+            <div class="flex items-center space-x-4 text-sm">
+                <a href="/login" id="nav-login" class="text-gray-400 hover:text-cyan-400 transition">登录</a>
+                <a href="/register" id="nav-register" class="text-gray-400 hover:text-cyan-400 transition">注册</a>
+                <a href="/profile" id="nav-profile" class="hidden text-gray-400 hover:text-cyan-400 transition">我的</a>
+                <span id="nav-version" class="text-gray-600">v1.0.0</span>
             </div>
         </div>
     </nav>
@@ -40,8 +60,50 @@
         {% block content %}{% endblock %}
     </main>
 
-    <footer class="border-t border-gray-800 py-6 text-center text-gray-600 text-sm">
-        StrixPro - AI驱动的自动化安全测试平台 | AGPL-3.0 License
+    <footer class="border-t border-gray-800 py-6">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+                <div class="text-gray-600 text-sm">
+                    StrixPro - AI 驱动的自动化安全测试平台 | AGPL-3.0 License
+                </div>
+                <div class="flex space-x-3">
+                    <button onclick="shareUrl()" class="share-btn text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 px-4 py-2 rounded-lg transition border border-gray-700">
+                        分享给朋友
+                    </button>
+                    <a href="mailto:contact@strixpro.io" class="share-btn text-xs bg-gray-800 hover:bg-gray-700 text-gray-400 px-4 py-2 rounded-lg transition border border-gray-700">
+                        联系我们
+                    </a>
+                </div>
+            </div>
+        </div>
     </footer>
+
+    <script>
+    // Show/hide auth nav based on login state
+    (function() {
+        const token = localStorage.getItem('strixpro_token');
+        const loginEl = document.getElementById('nav-login');
+        const registerEl = document.getElementById('nav-register');
+        const profileEl = document.getElementById('nav-profile');
+        if (token) {
+            if (loginEl) loginEl.classList.add('hidden');
+            if (registerEl) registerEl.classList.add('hidden');
+            if (profileEl) profileEl.classList.remove('hidden');
+        }
+    })();
+
+    function shareUrl() {
+        const url = window.location.href;
+        if (navigator.share) {
+            navigator.share({ title: 'StrixPro - AI 安全测试平台', url: url });
+        } else {
+            navigator.clipboard.writeText(url);
+            const btn = event.target;
+            const orig = btn.textContent;
+            btn.textContent = '已复制链接';
+            setTimeout(() => btn.textContent = orig, 2000);
+        }
+    }
+    </script>
 </body>
 </html>

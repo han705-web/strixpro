@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% block title %}个人中心{% endblock %}
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-3xl font-light mb-2">个人中心</h1>
+    <p class="text-gray-400" id="welcome-msg"></p>
+</div>
+
+<div id="not-logged-in" class="hidden text-center py-16">
+    <p class="text-gray-400 text-lg mb-4">请先登录</p>
+    <a href="/login" class="inline-block bg-gradient-to-r from-cyan-500 to-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:opacity-90 transition text-sm">
+        去登录
+    </a>
+</div>
+
+<div id="profile-content" class="hidden space-y-8">
+    <!-- 用户信息 -->
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-6">
+        <h2 class="text-lg font-semibold mb-4">账户信息</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+                <span class="text-gray-500">用户ID</span>
+                <p class="text-gray-200 font-mono" id="p-user-id">-</p>
+            </div>
+            <div>
+                <span class="text-gray-500">邮箱</span>
+                <p class="text-gray-200" id="p-email">-</p>
+            </div>
+            <div>
+                <span class="text-gray-500">用户名</span>
+                <p class="text-gray-200" id="p-username">-</p>
+            </div>
+            <div>
+                <span class="text-gray-500">注册时间</span>
+                <p class="text-gray-200" id="p-created">-</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 我的订单 -->
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">我的订单</h2>
+        </div>
+        <div id="orders-list">
+            <p class="text-gray-500 text-sm">加载中...</p>
+        </div>
+    </div>
+
+    <!-- 我的 License -->
+    <div class="bg-gray-900 rounded-xl border border-gray-800 p-6">
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold">我的 License</h2>
+        </div>
+        <div id="licenses-list">
+            <p class="text-gray-500 text-sm">加载中...</p>
+        </div>
+    </div>
+
+    <!-- 退出登录 -->
+    <div class="text-center">
+        <button id="logout-btn" class="text-sm text-gray-500 hover:text-red-400 transition">退出登录</button>
+    </div>
+</div>
+
+<script>
+async function loadProfile() {
+    const token = localStorage.getItem('strixpro_token');
+    if (!token) {
+        document.getElementById('not-logged-in').classList.remove('hidden');
+        return;
+    }
+
+    const res = await fetch('/api/v1/auth/profile', {
+        headers: {'Authorization': 'Bearer ' + token}
+    });
+    if (!res.ok) {
+        localStorage.removeItem('strixpro_token');
+        localStorage.removeItem('strixpro_username');
+        document.getElementById('not-logged-in').classList.remove('hidden');
+        return;
+    }
+
+    const data = await res.json();
+    document.getElementById('profile-content').classList.remove('hidden');
+    document.getElementById('welcome-msg').textContent = '欢迎回来，' + (data.username || data.email);
+
+    document.getElementById('p-user-id').textContent = data.user_id;
+    document.getElementById('p-email').textContent = data.email;
+    document.getElementById('p-username').textContent = data.username;
+    document.getElementById('p-created').textContent = new Date(data.created_at * 1000).toLocaleDateString('zh-CN');
+
+    // Orders
+    const ordersEl = document.getElementById('orders-list');
+    if (data.orders && data.orders.length > 0) {
+        ordersEl.innerHTML = data.orders.map(o => `
+            <div class="flex items-center justify-between py-3 border-b border-gray-800 text-sm">
+                <div>
+                    <span class="text-gray-200">${o.product_name || o.product_id}</span>
+                    <span class="text-gray-500 ml-2">${o.order_id}</span>
+                </div>
+                <div>
+                    <span class="text-gray-400">¥${o.price_cny}</span>
+                    <span class="ml-3 px-2 py-0.5 rounded text-xs ${o.status === 'paid' ? 'bg-green-900 text-green-300' : 'bg-yellow-900 text-yellow-300'}">${o.status === 'paid' ? '已支付' : '待支付'}</span>
+                </div>
+            </div>
+        `).join('');
+    } else {
+        ordersEl.innerHTML = '<p class="text-gray-500 text-sm">暂无订单</p>';
+    }
+
+    // Licenses
+    const licEl = document.getElementById('licenses-list');
+    if (data.licenses && data.licenses.length > 0) {
+        licEl.innerHTML = data.licenses.map(l => {
+            const expired = l.expires_at * 1000 < Date.now();
+            return `
+                <div class="flex items-center justify-between py-3 border-b border-gray-800 text-sm">
+                    <div>
+                        <span class="font-mono text-cyan-400">${l.license_key}</span>
+                        <span class="text-gray-500 ml-2">${l.product_name || l.product_id}</span>
+                    </div>
+                    <div class="text-right">
+                        <div class="${expired ? 'text-red-400' : 'text-green-400'}">${expired ? '已过期' : '有效中'}</div>
+                        <div class="text-gray-500 text-xs">到期: ${new Date(l.expires_at * 1000).toLocaleDateString('zh-CN')}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } else {
+        licEl.innerHTML = '<p class="text-gray-500 text-sm">暂无 License</p>';
+    }
+}
+
+document.getElementById('logout-btn')?.addEventListener('click', function() {
+    localStorage.removeItem('strixpro_token');
+    localStorage.removeItem('strixpro_username');
+    window.location.href = '/';
+});
+
+loadProfile();
+</script>
+{% endblock %}
