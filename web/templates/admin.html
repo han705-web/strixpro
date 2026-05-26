@@ -1,0 +1,324 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+{% block content %}
+<h1 class="text-3xl font-light mb-6">管理后台</h1>
+
+<div class="grid grid-cols-3 gap-6 mb-6" id="stats"></div>
+
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">站点信息</h2>
+    <div class="text-sm space-y-2">
+        <div><span class="text-gray-400">当前公网地址:</span> <span id="publicUrl" class="text-cyan-400 font-mono text-xs">检测中...</span></div>
+        <div><span class="text-gray-400">PayJS 回调地址:</span> <span id="payjsCallbackUrl" class="text-green-400 font-mono text-xs">等待地址确认...</span></div>
+    </div>
+</div>
+
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mb-6">
+    <h2 class="text-lg font-semibold mb-4">订单管理</h2>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm" id="ordersTable">
+            <thead><tr class="text-gray-400 border-b border-gray-800">
+                <th class="text-left py-2 px-3">订单号</th><th class="text-left py-2 px-3">产品</th>
+                <th class="text-left py-2 px-3">金额</th><th class="text-left py-2 px-3">状态</th>
+                <th class="text-left py-2 px-3">时间</th><th class="text-left py-2 px-3">操作</th>
+            </tr></thead>
+            <tbody id="ordersBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6">
+    <h2 class="text-lg font-semibold mb-4">License Keys</h2>
+    <div class="overflow-x-auto">
+        <table class="w-full text-sm" id="keysTable">
+            <thead><tr class="text-gray-400 border-b border-gray-800">
+                <th class="text-left py-2 px-3">License Key</th><th class="text-left py-2 px-3">产品</th>
+                <th class="text-left py-2 px-3">创建时间</th><th class="text-left py-2 px-3">过期</th>
+                <th class="text-left py-2 px-3">激活数</th>
+            </tr></thead>
+            <tbody id="keysBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+async function loadAdmin() {
+    // Stats
+    const s = await (await fetch('/api/v1/admin/stats')).json();
+    document.getElementById('stats').innerHTML =
+        '<div class="bg-gray-900 rounded-xl p-6 border border-gray-800"><div class="text-3xl font-bold text-green-400 mb-1">¥' + s.total_revenue_cny + '</div><div class="text-gray-400 text-sm">总收入</div></div>' +
+        '<div class="bg-gray-900 rounded-xl p-6 border border-gray-800"><div class="text-3xl font-bold text-cyan-400 mb-1">' + s.total_orders_paid + '</div><div class="text-gray-400 text-sm">已支付订单</div></div>' +
+        '<div class="bg-gray-900 rounded-xl p-6 border border-gray-800"><div class="text-3xl font-bold text-amber-400 mb-1">' + s.license_keys_issued + '</div><div class="text-gray-400 text-sm">已签发Key</div></div>';
+
+    // Orders
+    const o = await (await fetch('/api/v1/admin/orders')).json();
+    document.getElementById('ordersBody').innerHTML = o.orders.map(ord =>
+        '<tr class="border-b border-gray-800 hover:bg-gray-800/50">' +
+        '<td class="py-2 px-3 font-mono text-xs">' + ord.order_id + '</td>' +
+        '<td class="py-2 px-3">' + ord.product_name + '</td>' +
+        '<td class="py-2 px-3">¥' + ord.price_cny + '</td>' +
+        '<td class="py-2 px-3"><span class="' + (ord.status === 'paid' ? 'text-green-400' : 'text-yellow-400') + '">' + (ord.status === 'paid' ? '已支付' : '待支付') + '</span></td>' +
+        '<td class="py-2 px-3 text-xs text-gray-400">' + new Date(ord.created_at * 1000).toLocaleString() + '</td>' +
+        '<td class="py-2 px-3">' + (ord.status === 'pending' ? '<button onclick="confirmPay(\'' + ord.order_id + '\')" class="text-cyan-400 hover:text-cyan-300 text-xs">确认收款</button>' : '<span class="text-xs text-green-400">License: ' + (ord.license_key || '') + '</span>') + '</td>' +
+        '</tr>'
+    ).join('');
+
+    // License keys
+    const k = await (await fetch('/api/v1/admin/keys')).json();
+    document.getElementById('keysBody').innerHTML = k.keys.map(key =>
+        '<tr class="border-b border-gray-800 hover:bg-gray-800/50">' +
+        '<td class="py-2 px-3 font-mono text-xs text-cyan-400">' + key.key + '</td>' +
+        '<td class="py-2 px-3">' + key.product + '</td>' +
+        '<td class="py-2 px-3 text-xs">' + key.created + '</td>' +
+        '<td class="py-2 px-3 text-xs">' + key.expires + '</td>' +
+        '<td class="py-2 px-3">' + key.activations + '</td>' +
+        '</tr>'
+    ).join('');
+}
+
+async function confirmPay(orderId) {
+    await fetch('/api/v1/order/' + orderId + '/confirm', {method: 'POST'});
+    loadAdmin();
+}
+
+loadAdmin();
+</script>
+
+<!-- Payment Config -->
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mt-6">
+    <h2 class="text-lg font-semibold mb-4">手动收款设置</h2>
+    <p class="text-xs text-gray-500 mb-4">配置后 checkout 页面会显示你的收款二维码，买家扫码付款后点击确认按钮</p>
+    <div class="space-y-4 text-sm">
+        <div>
+            <label class="text-gray-400 block mb-1">支付宝收款码图片 URL</label>
+            <input id="alipayQrUrl" type="text" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700" placeholder="上传图片后粘贴URL" />
+        </div>
+        <div>
+            <label class="text-gray-400 block mb-1">微信收款码图片 URL</label>
+            <input id="wechatQrUrl" type="text" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700" placeholder="上传图片后粘贴URL" />
+        </div>
+        <div>
+            <label class="text-gray-400 block mb-1">支付宝账号</label>
+            <input id="alipayAccount" type="text" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700" placeholder="your@email.com 或手机号" />
+        </div>
+        <div>
+            <label class="text-gray-400 block mb-1">微信号</label>
+            <input id="wechatAccount" type="text" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700" placeholder="微信号" />
+        </div>
+        <button onclick="savePaymentConfig()" class="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-2 rounded-lg text-sm transition">
+            保存设置
+        </button>
+        <div id="paymentConfigStatus" class="text-xs"></div>
+    </div>
+</div>
+
+<!-- PayJS Config -->
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mt-6">
+    <h2 class="text-lg font-semibold mb-4">PayJS 自动收款</h2>
+    <p class="text-xs text-gray-500 mb-4">配置后买家扫码付款，PayJS 自动通知，系统自动发 Key，无需人工操作。<a href="https://payjs.cn" target="_blank" class="text-cyan-400 hover:underline">去 PayJS 注册 &rarr;</a></p>
+    <div class="space-y-4 text-sm">
+        <div>
+            <label class="text-gray-400 block mb-1">商户号 (mchid)</label>
+            <input id="payjsMchid" type="text" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700" placeholder="从 PayJS 后台获取" />
+        </div>
+        <div>
+            <label class="text-gray-400 block mb-1">通信密钥 (key)</label>
+            <input id="payjsKey" type="password" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700" placeholder="从 PayJS 后台获取" />
+        </div>
+        <div>
+            <label class="text-gray-400 block mb-1">异步通知 URL (notify_url)</label>
+            <input id="payjsNotifyUrl" type="text" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700 text-cyan-400" readonly />
+            <p class="text-xs text-gray-600 mt-1">系统自动生成，将此地址填写到 PayJS 后台的"异步通知地址"</p>
+        </div>
+        <button onclick="savePayJSConfig()" class="bg-green-600 hover:bg-green-500 text-white px-6 py-2 rounded-lg text-sm transition">
+            保存 PayJS 配置
+        </button>
+        <div id="payjsConfigStatus" class="text-xs"></div>
+    </div>
+</div>
+
+<script>
+async function savePaymentConfig() {
+    const data = {
+        alipay_qr: document.getElementById('alipayQrUrl').value,
+        wechat_qr: document.getElementById('wechatQrUrl').value,
+        alipay_account: document.getElementById('alipayAccount').value,
+        wechat_account: document.getElementById('wechatAccount').value,
+    };
+    try {
+        const r = await fetch('/api/v1/admin/payment-config', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+        });
+        const d = await r.json();
+        document.getElementById('paymentConfigStatus').textContent = d.success ? '保存成功' : '保存失败';
+    } catch(e) {
+        document.getElementById('paymentConfigStatus').textContent = '保存失败: ' + e.message;
+    }
+}
+
+async function savePayJSConfig() {
+    const data = {
+        mchid: document.getElementById('payjsMchid').value,
+        key: document.getElementById('payjsKey').value,
+        notify_url: document.getElementById('payjsNotifyUrl').value,
+    };
+    try {
+        const r = await fetch('/api/v1/admin/payjs-config', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+        });
+        const d = await r.json();
+        document.getElementById('payjsConfigStatus').textContent = d.success ? '保存成功' : '保存失败';
+        document.getElementById('payjsConfigStatus').className = 'text-xs ' + (d.success ? 'text-green-400' : 'text-red-400');
+    } catch(e) {
+        document.getElementById('payjsConfigStatus').textContent = '保存失败: ' + e.message;
+        document.getElementById('payjsConfigStatus').className = 'text-xs text-red-400';
+    }
+}
+
+// Load configs on page load
+(async function() {
+    try {
+        const r = await fetch('/api/v1/admin/payment-config');
+        const d = await r.json();
+        if (d.alipay_qr) document.getElementById('alipayQrUrl').value = d.alipay_qr;
+        if (d.wechat_qr) document.getElementById('wechatQrUrl').value = d.wechat_qr;
+        if (d.alipay_account) document.getElementById('alipayAccount').value = d.alipay_account;
+        if (d.wechat_account) document.getElementById('wechatAccount').value = d.wechat_account;
+    } catch(e) {}
+    try {
+        const r = await fetch('/api/v1/admin/payjs-config');
+        const d = await r.json();
+        if (d.mchid) document.getElementById('payjsMchid').value = d.mchid;
+        if (d.notify_url) {
+            document.getElementById('payjsNotifyUrl').value = d.notify_url + '/api/v1/payment/payjs/notify';
+        }
+    } catch(e) {}
+})();
+
+// Load config
+(async function() {
+    try {
+        const r = await fetch('/api/v1/admin/payment-config');
+        const d = await r.json();
+        if (d.alipay_qr) document.getElementById('alipayQrUrl').value = d.alipay_qr;
+        if (d.wechat_qr) document.getElementById('wechatQrUrl').value = d.wechat_qr;
+        if (d.alipay_account) document.getElementById('alipayAccount').value = d.alipay_account;
+        if (d.wechat_account) document.getElementById('wechatAccount').value = d.wechat_account;
+    } catch(e) {}
+})();
+
+// Detect public URL and set notify_url
+(function() {
+    const url = window.location.origin;
+    const el = document.getElementById('publicUrl');
+    if (el) el.textContent = url;
+    const cb = document.getElementById('payjsCallbackUrl');
+    if (cb) cb.textContent = url + '/api/v1/payment/payjs/notify';
+    const ni = document.getElementById('payjsNotifyUrl');
+    if (ni) ni.value = url + '/api/v1/payment/payjs/notify';
+})();
+
+// SMTP config load & save
+(async function() {
+    try {
+        const r = await fetch('/api/v1/admin/smtp-config');
+        const d = await r.json();
+        if (d.host !== undefined) document.getElementById('smtpHost').value = d.host;
+        if (d.port !== undefined) document.getElementById('smtpPort').value = d.port;
+        if (d.user !== undefined) document.getElementById('smtpUser').value = d.user;
+        if (d.from_addr !== undefined) document.getElementById('smtpFrom').value = d.from_addr;
+        if (d.from_name !== undefined) document.getElementById('smtpFromName').value = d.from_name;
+        if (d.enabled) document.getElementById('smtpEnabled').checked = true;
+    } catch(e) {}
+})();
+
+async function saveSmtpConfig() {
+    const data = {
+        enabled: document.getElementById('smtpEnabled').checked,
+        host: document.getElementById('smtpHost').value,
+        port: parseInt(document.getElementById('smtpPort').value) || 587,
+        user: document.getElementById('smtpUser').value,
+        password: document.getElementById('smtpPassword').value,
+        from_addr: document.getElementById('smtpFrom').value,
+        from_name: document.getElementById('smtpFromName').value,
+    };
+    try {
+        const r = await fetch('/api/v1/admin/smtp-config', {
+            method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data)
+        });
+        const d = await r.json();
+        const el = document.getElementById('smtpConfigStatus');
+        el.textContent = d.success ? '保存成功' : '保存失败';
+        el.className = 'text-xs ' + (d.success ? 'text-green-400' : 'text-red-400');
+    } catch(e) {
+        document.getElementById('smtpConfigStatus').textContent = '保存失败: ' + e.message;
+        document.getElementById('smtpConfigStatus').className = 'text-xs text-red-400';
+    }
+}
+
+async function testSmtp() {
+    const el = document.getElementById('smtpTestStatus');
+    el.textContent = '发送中...';
+    el.className = 'text-xs text-gray-400';
+    try {
+        const r = await fetch('/api/v1/admin/smtp-test', {method: 'POST'});
+        const d = await r.json();
+        el.textContent = d.success ? '测试邮件发送成功！请检查收件箱' : '发送失败: ' + d.error;
+        el.className = 'text-xs ' + (d.success ? 'text-green-400' : 'text-red-400');
+    } catch(e) {
+        el.textContent = '发送失败: ' + e.message;
+        el.className = 'text-xs text-red-400';
+    }
+}
+</script>
+
+<!-- SMTP Config -->
+<div class="bg-gray-900 rounded-xl border border-gray-800 p-6 mt-6">
+    <h2 class="text-lg font-semibold mb-4">邮件服务器 (SMTP)</h2>
+    <p class="text-xs text-gray-500 mb-4">配置后支付成功自动发送 License Key 到用户邮箱。推荐使用 QQ邮箱/163邮箱/阿里企业邮的 SMTP 服务。</p>
+    <div class="space-y-4 text-sm">
+        <label class="flex items-center space-x-2">
+            <input id="smtpEnabled" type="checkbox" class="bg-gray-800 border-gray-700 rounded">
+            <span class="text-gray-400">启用邮件发送</span>
+        </label>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="text-gray-400 block mb-1">SMTP 服务器</label>
+                <input id="smtpHost" type="text" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700" placeholder="smtp.qq.com">
+            </div>
+            <div>
+                <label class="text-gray-400 block mb-1">端口</label>
+                <input id="smtpPort" type="number" value="587" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700">
+            </div>
+        </div>
+        <div>
+            <label class="text-gray-400 block mb-1">用户名</label>
+            <input id="smtpUser" type="text" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700" placeholder="your@qq.com">
+        </div>
+        <div>
+            <label class="text-gray-400 block mb-1">密码/授权码</label>
+            <input id="smtpPassword" type="password" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700" placeholder="SMTP 授权码">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="text-gray-400 block mb-1">发件人地址</label>
+                <input id="smtpFrom" type="text" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700" placeholder="your@qq.com">
+            </div>
+            <div>
+                <label class="text-gray-400 block mb-1">发件人名称</label>
+                <input id="smtpFromName" type="text" value="StrixPro" class="w-full bg-gray-800 text-gray-200 rounded px-3 py-2 border border-gray-700">
+            </div>
+        </div>
+        <div class="flex space-x-3">
+            <button onclick="saveSmtpConfig()" class="bg-cyan-600 hover:bg-cyan-500 text-white px-6 py-2 rounded-lg text-sm transition">
+                保存 SMTP 配置
+            </button>
+            <button onclick="testSmtp()" class="bg-gray-700 hover:bg-gray-600 text-gray-200 px-6 py-2 rounded-lg text-sm transition">
+                测试发送
+            </button>
+        </div>
+        <div id="smtpConfigStatus" class="text-xs"></div>
+        <div id="smtpTestStatus" class="text-xs"></div>
+    </div>
+</div>
+{% endblock %}

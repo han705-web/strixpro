@@ -507,6 +507,19 @@ if FASTAPI_AVAILABLE:
             if order and order.get("email"):
                 from web.users import update_user_orders
                 update_user_orders(order["email"], order_id, result.get("license_key", ""))
+                # Send email notification
+                try:
+                    from web.email import send_license_email, send_order_confirmation_email, load_smtp_config
+                    cfg = load_smtp_config()
+                    if cfg.get("enabled"):
+                        username = order.get("email", "").split("@")[0]
+                        send_license_email(order["email"], username,
+                            result["license_key"], result.get("product_name", ""),
+                            result.get("expires_at", 0))
+                        send_order_confirmation_email(order["email"], username,
+                            order_id, result.get("product_name", ""), order["price_cny"])
+                except Exception as e:
+                    logger.warning("Send email failed for order %s: %s", order_id, e)
         return result
 
     @app.get("/api/v1/license/verify")
@@ -658,6 +671,31 @@ if FASTAPI_AVAILABLE:
         cfg.update(data)
         _save_payment_config(cfg)
         return {"success": True, "config": cfg}
+
+    # SMTP / Email config
+    @app.get("/api/v1/admin/smtp-config")
+    async def get_smtp_config():
+        from web.email import load_smtp_config
+        cfg = load_smtp_config()
+        if cfg.get("password"):
+            cfg["password"] = "******"
+        return cfg
+
+    @app.post("/api/v1/admin/smtp-config")
+    async def update_smtp_config(data: dict = Body(...)):
+        from web.email import load_smtp_config, save_smtp_config
+        cfg = load_smtp_config()
+        for k in ("enabled", "host", "port", "user", "password", "from_addr", "from_name"):
+            if k in data:
+                cfg[k] = data[k]
+        save_smtp_config(cfg)
+        return {"success": True}
+
+    @app.post("/api/v1/admin/smtp-test")
+    async def test_smtp():
+        from web.email import send_email
+        result = send_email("test@strixpro.io", "StrixPro 邮件测试", "这是一封测试邮件。如果收到，说明 SMTP 配置正常。")
+        return result
 
     # ============ Examples / Static Demo Data ============
 
